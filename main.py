@@ -3,19 +3,22 @@ import random
 import cairo
 import math
 
-
-
 # Variables
 SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 600
 SPEED = 10
 GRAVITY = 1
-GAME_SPEED = 5
-PIPE_WIDTH = 80 
+PIPE_WIDTH = 80
 PIPE_GAP = 150
 BIRD_RADIUS = 20
 LIVES = 3
 
+# Difficulty settings
+DIFFICULTY_SETTINGS = {
+    "Easy": 3,
+    "Medium": 5,
+    "Hard": 8
+}
 
 # Initialize Pygame
 pygame.init()
@@ -23,7 +26,6 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('3D Flappy Sphere')
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 30)
-
 
 # Bird (Sphere) Class with 3D gradient effect
 class Bird:
@@ -44,7 +46,6 @@ class Bird:
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 2 * BIRD_RADIUS, 2 * BIRD_RADIUS)
         cr = cairo.Context(surface)
         
-        # Radial gradient for the 3D effect on the sphere
         gradient = cairo.RadialGradient(BIRD_RADIUS, BIRD_RADIUS, 5, BIRD_RADIUS, BIRD_RADIUS, BIRD_RADIUS)
         gradient.add_color_stop_rgba(0, 0.2, 0.2, 1, 1)  # Center color
         gradient.add_color_stop_rgba(1, 0, 0, 0.6, 1)  # Edge color
@@ -66,25 +67,20 @@ class Pipe:
         self.inverted = inverted
 
     def update(self):
-        self.x -= GAME_SPEED
+        self.x -= game_speed
 
     def draw(self, screen):
-        # Use Cairo for shading effect on the pipes
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, PIPE_WIDTH, SCREEN_HEIGHT)
         cr = cairo.Context(surface)
         
-        # Draw pipe with shading for 3D effect
         cr.rectangle(0, 0, PIPE_WIDTH, SCREEN_HEIGHT)
         gradient = cairo.LinearGradient(0, 0, PIPE_WIDTH, 0)
-        gradient.add_color_stop_rgba(0, 140.2, 140.8, 140.2, 1)  # Left side
-        gradient.add_color_stop_rgba(1, 255, 255, 0.8, 1)      # Right side
+        gradient.add_color_stop_rgba(0, 0.55, 0.55, 0.55, 1)
+        gradient.add_color_stop_rgba(1, 1, 1, 0.8, 1)
         cr.set_source(gradient)
         cr.fill()
 
-        # Convert Cairo surface to Pygame surface
         pipe_surface = pygame.image.frombuffer(surface.get_data(), (PIPE_WIDTH, SCREEN_HEIGHT), "ARGB")
-
-        # Draw pipe in the correct position
         if self.inverted:
             screen.blit(pipe_surface, (self.x, 0), (0, SCREEN_HEIGHT - self.height, PIPE_WIDTH, self.height))
         else:
@@ -97,7 +93,8 @@ class Pipe:
             if not self.inverted and bird.y + BIRD_RADIUS > SCREEN_HEIGHT - self.height:
                 return True
         return False
- # Functions
+
+# Functions
 def create_pipes():
     height = random.randint(100, 400)
     top_pipe = Pipe(SCREEN_WIDTH, height, True)
@@ -107,7 +104,42 @@ def create_pipes():
 def display_lives(lives):
     lives_text = font.render(f"Lives: {lives}", True, (255, 255, 255))
     screen.blit(lives_text, (10, 10))
+
+def game_intro():
+    global game_speed
+    intro = True
+    while intro:
+        screen.fill((0, 0, 0))
+        title_text = font.render("3D Flappy Sphere", True, (255, 255, 255))
+        screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 4))
+
+        easy_text = font.render("Press E for Easy", True, (0, 255, 0))
+        medium_text = font.render("Press M for Medium", True, (255, 255, 0))
+        hard_text = font.render("Press H for Hard", True, (255, 0, 0))
+        
+        screen.blit(easy_text, (SCREEN_WIDTH // 2 - easy_text.get_width() // 2, SCREEN_HEIGHT // 2))
+        screen.blit(medium_text, (SCREEN_WIDTH // 2 - medium_text.get_width() // 2, SCREEN_HEIGHT // 2 + 30))
+        screen.blit(hard_text, (SCREEN_WIDTH // 2 - hard_text.get_width() // 2, SCREEN_HEIGHT // 2 + 60))
+
+        pygame.display.flip()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_e:
+                    game_speed = DIFFICULTY_SETTINGS["Easy"]
+                    intro = False
+                elif event.key == pygame.K_m:
+                    game_speed = DIFFICULTY_SETTINGS["Medium"]
+                    intro = False
+                elif event.key == pygame.K_h:
+                    game_speed = DIFFICULTY_SETTINGS["Hard"]
+                    intro = False
+
 # Game Loop
+game_intro()
 bird = Bird()
 pipes = list(create_pipes())
 lives = LIVES
@@ -133,25 +165,20 @@ while running:
     if any(pipe.collide(bird) for pipe in pipes) or bird.y >= SCREEN_HEIGHT - BIRD_RADIUS:
         lives -= 1
         if lives <= 0:
-            running = False  # End game when lives are zero
+            running = False
         else:
-            bird = Bird()  # Reset bird position
-            pipes = list(create_pipes())  # Reset pipes
+            bird = Bird()
+            pipes = list(create_pipes())
 
-    # Generate new pipes when the previous ones are off-screen
     if pipes[0].x < -PIPE_WIDTH:
         pipes = pipes[2:] + list(create_pipes())
 
-    # Drawing
     bird.draw(screen)
     for pipe in pipes:
         pipe.draw(screen)
-    display_lives(lives)  # Show remaining lives
+    display_lives(lives)
 
     pygame.display.flip()
     clock.tick(30)
 
 pygame.quit()
-
-
-
