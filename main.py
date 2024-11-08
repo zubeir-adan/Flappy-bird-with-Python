@@ -188,8 +188,11 @@ while True:
         # Check for collisions
         if any(pipe.collide(bird) for pipe in pipes) or bird.y >= SCREEN_HEIGHT - BIRD_RADIUS:
             lives -= 1
-            if lives <= 0:
-                running = False  # End game loop
+            if lives > 0:
+                bird = Bird()  # Reset bird position
+                pipes = list(create_pipes())  # Reset pipes
+            else:
+                running = False  # End game loop when out of lives
 
         # Generate new pipes when previous ones go off-screen
         if pipes[0].x < -PIPE_WIDTH:
