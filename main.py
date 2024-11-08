@@ -209,3 +209,4 @@ while True:
 
     if not end_screen():  # Show end screen and decide whether to retry or quit
         break  # Exit the game loop if the player chooses to quit
+pygame.quit()                                                             
