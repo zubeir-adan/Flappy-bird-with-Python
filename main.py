@@ -42,7 +42,6 @@ class Bird:
         self.speed = -SPEED
 
     def draw(self, screen):
-        # Using Cairo to create a radial gradient to simulate 3D sphere effect
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 2 * BIRD_RADIUS, 2 * BIRD_RADIUS)
         cr = cairo.Context(surface)
         
@@ -54,7 +53,6 @@ class Bird:
         cr.arc(BIRD_RADIUS, BIRD_RADIUS, BIRD_RADIUS, 0, 2 * math.pi)
         cr.fill()
 
-        # Convert Cairo surface to Pygame surface and blit
         ball_surface = pygame.image.frombuffer(surface.get_data(), (2 * BIRD_RADIUS, 2 * BIRD_RADIUS), "ARGB")
         screen.blit(ball_surface, (self.x - BIRD_RADIUS, int(self.y) - BIRD_RADIUS))
 
@@ -138,47 +136,73 @@ def game_intro():
                     game_speed = DIFFICULTY_SETTINGS["Hard"]
                     intro = False
 
-# Game Loop
+def end_screen():
+    end = True
+    while end:
+        screen.fill((0, 0, 0))
+        game_over_text = font.render("Game Over", True, (255, 255, 255))
+        retry_text = font.render("Press R to Retry", True, (0, 255, 0))
+        quit_text = font.render("Press Q to Quit", True, (255, 0, 0))
+        
+        screen.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, SCREEN_HEIGHT // 3))
+        screen.blit(retry_text, (SCREEN_WIDTH // 2 - retry_text.get_width() // 2, SCREEN_HEIGHT // 2))
+        screen.blit(quit_text, (SCREEN_WIDTH // 2 - quit_text.get_width() // 2, SCREEN_HEIGHT // 2 + 30))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return True  # Retry
+                elif event.key == pygame.K_q:
+                    return False  # Quit
+
+# Main Game Loop
 game_intro()
-bird = Bird()
-pipes = list(create_pipes())
-lives = LIVES
-running = True
 
-while running:
-    screen.fill((0, 0, 0))
+while True:
+    bird = Bird()
+    pipes = list(create_pipes())
+    lives = LIVES
+    running = True
 
-    # Event handling
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                bird.bump()
+    while running:
+        screen.fill((0, 0, 0))
 
-    # Update game state
-    bird.update()
-    for pipe in pipes:
-        pipe.update()
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    bird.bump()
 
-    # Check for collisions
-    if any(pipe.collide(bird) for pipe in pipes) or bird.y >= SCREEN_HEIGHT - BIRD_RADIUS:
-        lives -= 1
-        if lives <= 0:
-            running = False
-        else:
-            bird = Bird()
-            pipes = list(create_pipes())
+        # Update game state
+        bird.update()
+        for pipe in pipes:
+            pipe.update()
 
-    if pipes[0].x < -PIPE_WIDTH:
-        pipes = pipes[2:] + list(create_pipes())
+        # Check for collisions
+        if any(pipe.collide(bird) for pipe in pipes) or bird.y >= SCREEN_HEIGHT - BIRD_RADIUS:
+            lives -= 1
+            if lives <= 0:
+                running = False  # End game loop
 
-    bird.draw(screen)
-    for pipe in pipes:
-        pipe.draw(screen)
-    display_lives(lives)
+        # Generate new pipes when previous ones go off-screen
+        if pipes[0].x < -PIPE_WIDTH:
+            pipes = pipes[2:] + list(create_pipes())
 
-    pygame.display.flip()
-    clock.tick(30)
+        # Draw everything
+        bird.draw(screen)
+        for pipe in pipes:
+            pipe.draw(screen)
+        display_lives(lives)
 
-pygame.quit()
+        pygame.display.flip()
+        clock.tick(30)
+
+    if not end_screen():  # Show end screen and decide whether to retry or quit
+        break  # Exit the game loop if the player chooses to quit
